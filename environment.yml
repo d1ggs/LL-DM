@@ -1,0 +1,17 @@
+name: ll-dm
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - ocl-icd-system
+  - clblast
+  - streamlit
+  - pip:
+      - langchain
+      - streamlit
+      - llama-cpp-python[server]
+      - chainlit
+      - loguru
+variables:
+  CMAKE_ARGS: -DLLAMA_CLBLAST=on
