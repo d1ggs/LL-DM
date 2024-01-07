@@ -4,8 +4,8 @@ This project aims at creating a tool to generate and host a campaign for the gam
 
 ## TODO
 
-* [ ] Create a basic UI
-* [x] Allow file upload
+* [x] Create a basic UI
+* [ ] Allow file upload
 * [ ] Set up document retrieval
 * [ ] Set up chat summarization
 * [ ] Set up audio generation (possible memory constraints)
