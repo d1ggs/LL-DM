@@ -3,7 +3,6 @@
 This project aims at creating a tool to generate and host a campaign for the game Dungeons and Dragons 5th edition.
 
 ## TODO
-
 * [x] Create a basic UI
 * [ ] Allow file upload
 * [ ] Set up document retrieval
@@ -12,7 +11,10 @@ This project aims at creating a tool to generate and host a campaign for the gam
 
 ## Installation
 The following instructions are for AMD cards. I will provide an NVIDIA version soon.
-
+0. Install the AMD drivers and OpenCL SDK
+```bash
+sudo apt install ocl-icd-opencl-dev
+```
 1. Make Sure you have the model files in the `models` folder
 ```bash
 chmod +x download_models.sh

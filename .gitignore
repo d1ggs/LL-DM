@@ -124,3 +124,7 @@ dmypy.json
 .pyre/
 
 models/
+llama-cpp-python/
+.pdm-python
+
+.devcontainer/

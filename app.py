@@ -13,6 +13,7 @@ from langchain_core.prompt_values import StringPromptValue
 from langchain_core.messages import ChatMessage
 
 from langchain.globals import set_verbose, set_debug
+from loguru import logger
 
 # set_debug(True)
 
@@ -25,8 +26,8 @@ USER_PROMPT_TEMPLATE = """{input}"""
 
 import chainlit as cl
 
-@cl.on_chat_start
-async def on_chat_start():
+@cl.cache
+def load_model():
     model = LlamaCpp(
             model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
             temperature=0.1,
@@ -37,7 +38,15 @@ async def on_chat_start():
             n_gpu_layers=-1,
             echo=True,
             n_ctx=1024*32,
+            stop=["### System", "### User", "### Assistant", "User:", "Player:", "DM:"],
         )
+    return model
+
+@cl.on_chat_start
+async def on_chat_start():
+    logger.debug("Run on_chat_start")
+    model = load_model()
+
     prompt = ChatPromptTemplate.from_messages([
         ChatMessagePromptTemplate.from_template(SYSTEM_PROMPT, role="### System"),
         MessagesPlaceholder("chat_history"),
