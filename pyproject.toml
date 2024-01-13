@@ -16,12 +16,21 @@ dependencies = [
     "langchain>=0.1.0",
     "loguru>=0.7.2",
     "optimum>=1.16.1",
-    "llama-cpp-python @ file:///${PROJECT_ROOT}/llama-cpp-python/dist/llama_cpp_python-0.2.28-cp310-cp310-manylinux_2_35_x86_64.whl"
+    "llama-cpp-python @ git+https://github.com/abetlen/llama-cpp-python@v0.2.28",
+    # "llama-cpp-python @ file:///${PROJECT_ROOT}/whl/llama-cpp-0.2.28-cp310-cp310-linux_x86_64.whl"
+    "sentence-transformers>=2.2.2",
+    "unstructured>=0.12.0",
+    "cohere>=4.42",
 ]
-requires-python = ">3.8.13,<3.12"
+requires-python = ">=3.10,<3.12"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.optional-dependencies]
+notebook = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.28.0",
+]
 [[tool.pdm.source]]
 name = "toch-rocm"
 url = "https://download.pytorch.org/whl/rocm5.6"

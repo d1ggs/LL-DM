@@ -6,12 +6,11 @@ dependencies:
   - python=3.10
   - ocl-icd-system
   - clblast
-  - streamlit
+  - faiss-cpu
+  - nb_conda_kernels
+  - pip
   - pip:
-      - langchain
-      - streamlit
-      - llama-cpp-python[server]
-      - chainlit
-      - loguru
+    - pdm
+    - click >= 5.1
 variables:
   CMAKE_ARGS: -DLLAMA_CLBLAST=on
