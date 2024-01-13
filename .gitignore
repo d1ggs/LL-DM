@@ -128,3 +128,5 @@ llama-cpp-python/
 .pdm-python
 
 .devcontainer/
+
+elements/*
