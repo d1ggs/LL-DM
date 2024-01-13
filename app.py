@@ -1,51 +1,68 @@
-from operator import itemgetter
-from typing import List, Tuple
-
 from langchain_community.llms import LlamaCpp
-from langchain.prompts import SystemMessagePromptTemplate, PromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate, ChatMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate, ChatMessagePromptTemplate
 from langchain.schema import StrOutputParser
-from langchain.schema.runnable import Runnable, RunnablePassthrough, RunnableLambda
-from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_core.prompt_values import StringPromptValue
-from langchain_core.messages import ChatMessage
+from langchain.chains import LLMChain
 
-from langchain.globals import set_verbose, set_debug
-from loguru import logger
-
-# set_debug(True)
-
-SYSTEM_PROMPT ="""You are a Dungeon Master for a D&D Forgotten Realms campaign set in Waterdeep. 
-The following is a conversation between you and the player. 
-Reply only for yourself, and directly to the player.
-Keep the conversation natural, and use your own personality."""
-
-USER_PROMPT_TEMPLATE = """{input}"""
 
 import chainlit as cl
 
+# set_debug(True)
+
+# SYSTEM_PROMPT ="""You are a Dungeon Master for a D&D Forgotten Realms campaign set in Waterdeep. 
+# The following is a conversation between you and the player. 
+# Reply only for yourself, and directly to the player.
+# Keep the conversation natural, and use your own personality."""
+
+SYSTEM_PROMPT = """
+You are a dungeon master of the D&D 5th edition game. 
+You are supposed to run a campaign for a single player using the official rules of D&D. 
+You know every rule and your role is to guide the player, describe the scenes, answer questions, and tell the story.
+Follow the following mandatory guidelines:
+* always follow the rules of D&D 5th edition
+* do not deliberately favor the players. Always rely on dice rolls for determining the outcomes of events that require dice rolls
+* always ask the player for their next action. Do not assume their next action
+
+Your messages must be structured as follows:
+<description of the scene / answer to the player's request>
+<ask for the next player action / input>
+"""
+
+USER_PROMPT_TEMPLATE = """{question}"""
+
 @cl.cache
-def load_model():
+def load_llm():
     model = LlamaCpp(
-            model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
-            temperature=0.1,
-            max_tokens=512,
-            top_p=0.95,
-            # callback_manager=callback_manager,
-            verbose=True, # Verbose is required to pass to the callback manager
-            n_gpu_layers=-1,
-            echo=True,
-            n_ctx=1024*32,
-            stop=["### System", "### User", "### Assistant", "User:", "Player:", "DM:"],
-        )
+        model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
+        temperature=0.1,
+        max_tokens=512,
+        top_p=0.95,
+        # callback_manager=callback_manager,
+        verbose=True, # Verbose is required to pass to the callback manager
+        n_gpu_layers=-1,
+        echo=True,
+        n_ctx=1024*32,
+        stop=["### System", "### User", "### Assistant", "User:", "Player:", "DM:"],
+    )
     return model
+
+# from transformers import AutoProcessor, SeamlessM4Tv2Model
+# import torchaudio
+# @cl.cache
+# def load_translation_model():
+#     processor = AutoProcessor.from_pretrained("facebook/seamless-m4t-v2-large", device_map="cpu")
+#     model = SeamlessM4Tv2Model.from_pretrained("facebook/seamless-m4t-v2-large", device_map="cpu")    
+#     return model, processor
 
 @cl.on_chat_start
 async def on_chat_start():
-    logger.debug("Run on_chat_start")
-    model = load_model()
+    
+    # translation_model, translation_processor = load_translation_model()
+    # cl.user_session.set("translation_model", translation_model)
+    # cl.user_session.set("translation_processor", translation_processor)
+    
+    model = load_llm()
 
     prompt = ChatPromptTemplate.from_messages([
         ChatMessagePromptTemplate.from_template(SYSTEM_PROMPT, role="### System"),
@@ -57,16 +74,14 @@ async def on_chat_start():
     
     memory = ConversationBufferWindowMemory(
         k=2, 
-        return_messages=True, 
-        input_key="input", 
-        memory_key="history",
-        output_key="answer",
-        )
-
-    loaded_memory = RunnablePassthrough.assign(
-        chat_history=RunnableLambda(memory.load_memory_variables)
-        | itemgetter("history"),
+        return_messages=True,
+        memory_key="chat_history",
     )
+    
+    # loaded_memory = RunnablePassthrough.assign(
+    #     chat_history=RunnableLambda(memory.load_memory_variables)
+    #     | itemgetter("history"),
+    # )
 
     # logger.debug(f"memory:load_memory_variables: {memory.chat_memory}")
 
@@ -77,28 +92,65 @@ async def on_chat_start():
     #     } | prompt
     # }
     
-    final_chain = loaded_memory | prompt | model | StrOutputParser()
-    cl.user_session.set("runnable", final_chain)
-    cl.user_session.set("chat_history", memory)
+    chain = LLMChain(llm=model, prompt=prompt, output_parser=StrOutputParser(), memory=memory)
+
+    cl.user_session.set("chain", chain)
+    
+    # final_chain = loaded_memory | prompt | model | StrOutputParser()
+    # cl.user_session.set("runnable", final_chain)
+    # cl.user_session.set("chat_history", memory)
+    
+    # Create a temporary directory for the audio files
+    # cl.user_session.set("temp_dir", tempfile.mkdtemp())
 
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    runnable = cl.user_session.get("runnable")  # type: Runnable
-    memory: ConversationBufferWindowMemory = cl.user_session.get("chat_history")
-    msg = cl.Message(content="")
+    
+    chain = cl.user_session.get("chain")  # type: LLMChain
 
-    async for chunk in runnable.astream(
-        {"input": message.content},
-        config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
-    ):
-        await msg.stream_token(chunk)
+    res = await chain.arun(
+        question=message.content, callbacks=[cl.LangchainCallbackHandler()]
+    )
 
-    await msg.send()
-    memory.chat_memory.add_message(ChatMessage(content=message.content, 
-                                            role="### User"))
-    memory.chat_memory.add_message(ChatMessage(content=msg.content, 
-                                               role="### Assistant"))
+    await cl.Message(content=res).send()
+
+    
+    # message_text = message.content
+    # translation_model = cl.user_session.get("translation_model")
+    # translation_processor = cl.user_session.get("translation_processor")
+    # audio_tmp_dir = cl.user_session.get("temp_dir")
+    
+    # runnable = cl.user_session.get("runnable")  # type: Runnable
+    # memory: ConversationBufferWindowMemory = cl.user_session.get("chat_history")
+    # elements = []
+    # llm_msg = cl.Message(content="", elements=[])
+
+    # async for chunk in runnable.astream(
+    #     {"input": message.content},
+    #     config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
+    # ):
+    #     await llm_msg.stream_token(chunk)
+    
+    # memory.chat_memory.add_message(ChatMessage(content=message.content, 
+    #                                         role="### User"))
+    # memory.chat_memory.add_message(ChatMessage(content=llm_msg.content, 
+    #                                            role="### Assistant"))
+    
+    # text_inputs = translation_processor(text = llm_msg.content, src_lang="eng", return_tensors="pt") #.to("cuda")
+    # audio_tensor = translation_model.generate(**text_inputs, tgt_lang="eng")[0].cpu()
+    # # Save the audio to a file with the timestamp as the name
+    # now = datetime.now().isoformat()
+    # destination = os.path.join(audio_tmp_dir, f"{now}.wav")
+    # torchaudio.save(destination, 
+    #                 audio_tensor, 
+    #                 15000)    
+    # elements.append(
+    #     cl.Audio(name="Italian audio", path=destination, display="inline"),
+    # )
+    # await llm_msg.send()
+    # llm_msg.elements = elements
+    # await llm_msg.update()
     
 # https://python.langchain.com/docs/expression_language/how_to/message_history
 # https://python.langchain.com/docs/expression_language/cookbook/prompt_llm_parser
