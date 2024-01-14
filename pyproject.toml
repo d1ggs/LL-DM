@@ -16,11 +16,13 @@ dependencies = [
     "langchain>=0.1.0",
     "loguru>=0.7.2",
     "optimum>=1.16.1",
-    "llama-cpp-python @ git+https://github.com/abetlen/llama-cpp-python@v0.2.28",
     # "llama-cpp-python @ file:///${PROJECT_ROOT}/whl/llama-cpp-0.2.28-cp310-cp310-linux_x86_64.whl"
     "sentence-transformers>=2.2.2",
     "unstructured>=0.12.0",
     "cohere>=4.42",
+    "langchain-openai>=0.0.2.post1",
+    "llama-cpp-python @ https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/rocm/llama_cpp_python-0.2.26+rocm5.6.1-cp310-cp310-manylinux_2_31_x86_64.whl",
+    "faiss-cpu>=1.7.4",
 ]
 requires-python = ">=3.10,<3.12"
 readme = "README.md"
@@ -31,6 +33,12 @@ notebook = [
     "jupyter>=1.0.0",
     "ipykernel>=6.28.0",
 ]
+
+[[tool.pdm.source]]
+name = "llama-cpp-python-rocm"
+url = "https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/rocm5.6.1/llama-cpp-python/"
+include_packages = ["llama-cpp-python"]
+
 [[tool.pdm.source]]
 name = "toch-rocm"
 url = "https://download.pytorch.org/whl/rocm5.6"

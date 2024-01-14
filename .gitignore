@@ -130,3 +130,4 @@ llama-cpp-python/
 .devcontainer/
 
 elements/*
+.chainlit/*

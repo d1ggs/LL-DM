@@ -11,18 +11,19 @@ This project aims at creating a tool to generate and host a campaign for the gam
 
 ## Installation
 The following instructions are for AMD cards. I will provide an NVIDIA version soon.
-0. Install the AMD drivers and OpenCL SDK
+
+0. This project uses PDM as a package manager
 ```bash
-sudo apt install ocl-icd-opencl-dev
+pip install pipx
+pipx install pdm
 ```
-1. Make Sure you have the model files in the `models` folder
+
+1. Install the dependencies
 ```bash
-chmod +x download_models.sh
-./download_models.sh
+pdm install
 ```
-2. Install the python dependencies with conda
+
+3. Start the UI
 ```bash
-export CMAKE_ARGS="-DLLAMA_CLBLAST=on"
-conda env create -f environment.yml
+pdm run chainlit run app.py
 ```
-3. [Optional] If upgrading the environment, make sure to remove `llama-cpp-python` first, it needs to be built from source
