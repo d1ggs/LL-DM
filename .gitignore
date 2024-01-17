@@ -131,3 +131,5 @@ llama-cpp-python/
 
 elements/*
 .chainlit/*
+*.sqlite
+merging_index/
