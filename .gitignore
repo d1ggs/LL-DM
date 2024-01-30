@@ -124,12 +124,18 @@ dmypy.json
 .pyre/
 
 models/
-llama-cpp-python/
+llama-cpp-python
 .pdm-python
 
 .devcontainer/
 
 elements/*
 .chainlit/*
+**/.streamlit/*
 *.sqlite
 merging_index/
+notebooks/CC-SRD
+notebooks/elements
+llama-cpp-python/
+notebooks/srd
+notebooks/srd.zip
