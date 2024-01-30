@@ -14,7 +14,7 @@ class ModelType(Enum):
 
 class ModelFactory:
     llama_cpp_default_kwargs = {
-        "model_path": "models/neural-chat-7b-v3-3.Q5_K_M.gguf",
+        "model_path": "../models/neural-chat-7b-v3-3.Q5_K_M.gguf",
         "temperature": 0.1,
         "max_tokens": 512,
         "top_p": 0.95,
