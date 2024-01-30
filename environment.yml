@@ -1,12 +1,10 @@
 name: ll-dm
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3.10
-  - ocl-icd-system
-  - clblast
-  - faiss-cpu
+  - cuda=12.1
+  - cudnn=8
   - nb_conda_kernels
   - pip
   - pip:
