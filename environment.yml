@@ -10,5 +10,4 @@ dependencies:
   - pip:
     - pdm
     - click >= 5.1
-variables:
-  CMAKE_ARGS: -DLLAMA_CLBLAST=on
+variables: {}
