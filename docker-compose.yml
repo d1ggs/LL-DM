@@ -1,0 +1,18 @@
+services:
+  api:
+    image: thebloke/cuda11.8.0-ubuntu22.04-oneclick:latest
+    ports:
+      - 7860:7860
+      - 5000:5000
+    environment:
+      # MODEL: TheBloke/neural-chat-7B-v3-1-GPTQ:gptq-4bit-32g-actorder_True
+      UI_ARGS: --model-dir /mnt/models --model TheBloke_neural-chat-7B-v3-1-GPTQ_gptq-4bit-32g-actorder_True
+    volumes:
+      - /mnt/d/WSL/text-generation-webui/models:/mnt/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
