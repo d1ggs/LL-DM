@@ -29,7 +29,7 @@ dependencies = [
     # "llama-cpp-python @ file:///${PROJECT_ROOT}/llama-cpp-python/dist/llama_cpp_python-0.2.31-cp310-cp310-manylinux_2_35_x86_64.whl",
     "faiss-cpu>=1.7.4",
     "langchainhub>=0.1.14",
-    "llama-index==0.9.0",
+    "llama-index==0.9.8",
     "trulens>=0.13.4",
     "trulens-eval>=0.18.3",
     "llama-cpp-python @ https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/wheels/llama_cpp_python-0.2.26+cu121-cp310-cp310-manylinux_2_31_x86_64.whl",
@@ -40,6 +40,8 @@ dependencies = [
     "torch==2.1.1",
     "pydantic<2",
     "langgraph>=0.0.21",
+    "guidance>=0.1.10",
+    "wget>=3.2",
 ]
 requires-python = ">=3.10,<3.11"
 readme = "README.md"
