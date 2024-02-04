@@ -183,8 +183,10 @@ class AutoMergingSRDIndex:
     
 if __name__ == "__main__":
     from llama_index.llms import OpenAI
+    
+    config = SRDConfig(srd_folder_path="srd", index_cache_path="index")
 
     llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
-    index = AutoMergingSRDIndex(llm)
+    index = AutoMergingSRDIndex(llm, config)
     
     print(index.query("What is the attack bonus for a longsword?"))
