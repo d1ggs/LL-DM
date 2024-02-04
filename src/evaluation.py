@@ -1,8 +1,8 @@
-from trulens_eval import OpenAI, Feedback, TruLlama, FeedbackMode
-from trulens_eval.feedback import Groundedness
-from llama_index.core.base_query_engine import BaseQueryEngine
-
 import numpy as np
+from llama_index.core.base_query_engine import BaseQueryEngine
+from trulens_eval import Feedback, FeedbackMode, OpenAI, TruLlama
+from trulens_eval.feedback import Groundedness
+
 
 def get_prebuilt_trulens_recorder(engine: BaseQueryEngine, app_id: str) -> TruLlama:
     """Returns a TruLlama instance with prebuilt feedbacks 

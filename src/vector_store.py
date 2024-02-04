@@ -1,22 +1,21 @@
-import os
 import fnmatch
+import io
+import os
 import shutil
 import tempfile
-from typing import List
-
 import zipfile
-import io
+from dataclasses import dataclass
+from typing import List, Optional
+
 import wget
-
-
-from llama_index import Document, SimpleDirectoryReader, load_index_from_storage
-from llama_index import ServiceContext, VectorStoreIndex, StorageContext
+from llama_index import (Document, ServiceContext, SimpleDirectoryReader,
+                         StorageContext, VectorStoreIndex,
+                         load_index_from_storage)
 from llama_index.indices.postprocessor import SentenceTransformerRerank
-from llama_index.node_parser import HierarchicalNodeParser
-from loguru import logger
-from llama_index.node_parser import get_leaf_nodes
-from llama_index.retrievers import AutoMergingRetriever
+from llama_index.node_parser import HierarchicalNodeParser, get_leaf_nodes
 from llama_index.query_engine import RetrieverQueryEngine
+from llama_index.retrievers import AutoMergingRetriever
+from loguru import logger
 
 
 def find_files_with_extension(root_dir, extension):
@@ -27,34 +26,42 @@ def find_files_with_extension(root_dir, extension):
             file_list.append(os.path.join(root, filename))
     return file_list
     
+@dataclass
+class SRDConfig:
+    srd_folder_path: str = "srd"
+    index_cache_path: str = "index"
 
 class AutoMergingSRDIndex:
     srd_folder_name = "srd"
     
-    def __init__(self, llm, cache_dir="index/srd") -> None:
-        self.cache_dir = "index/srd"
+    def __init__(self, llm, config: SRDConfig) -> None:
+        self.cache_dir = config.index_cache_path
         self.llm = llm
         self.query_engine = None
         
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        srd_folder = self._compute_srd_dir_path(project_root)
-        if not os.path.exists(srd_folder):
-            srd_folder = self.download_srd(project_root)
+        srd_folder = config.srd_folder_path
         
+        logger.debug(f"Loading SRD documents from {srd_folder}")
         documents = self.load_srd_documents(srd_folder)
         
         # Extract the parser nodes and all the leaf nodes
         node_parser = self.build_node_parser()
         nodes = node_parser.get_nodes_from_documents(documents)
-        self.storage_context = self.build_storage_context(nodes)
         
-        if not os.path.exists(cache_dir):
+        logger.debug(f"Creating cache directory {self.cache_dir}")
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
+        try:
+            logger.debug(f"Trying to load existing index from {self.cache_dir}")
+            self.storage_context = self.build_storage_context(documents, persist_dir=self.cache_dir)
+            self.index = self.load_index(self.storage_context)
+        except (ValueError, FileNotFoundError, AttributeError) as e:
+            logger.error(f"Error loading index: {e}")
+            self.storage_context = self.build_storage_context(nodes)
             # If the cache directory does not exist, 
             # create the index from scratch
-
             # Convert the JSON files to LLaMaIndex documents
             logger.debug(f"Building index from {srd_folder}")
-            
 
             leaf_nodes = get_leaf_nodes(nodes)
 
@@ -68,13 +75,14 @@ class AutoMergingSRDIndex:
             )
             self.index = automerging_index
             
-            os.makedirs(self.cache_dir, exist_ok=True)
             self.store_index(automerging_index)
                 
         else:
+            logger.debug(f"Loading existing index from {self.cache_dir}")
+
             # If the cache directory exists, load the index from disk
             self.index = self.load_index(self.storage_context)
-        
+        logger.debug("Index ready")
         # The query engine is used to search the index
         self.query_engine = self.get_automerging_query_engine(self.index)
 
@@ -100,9 +108,10 @@ class AutoMergingSRDIndex:
         
         return node_parser
     
-    def build_storage_context(self, documents) -> StorageContext:
+    def build_storage_context(self, documents, persist_dir: Optional[str] = None) -> StorageContext:
         """Build the storage context for the index."""
-        storage_context = StorageContext.from_defaults()
+        kwargs = {"persist_dir": persist_dir} if persist_dir else {}
+        storage_context = StorageContext.from_defaults(**kwargs)
         storage_context.docstore.add_documents(documents)
         
         return storage_context
@@ -140,7 +149,7 @@ class AutoMergingSRDIndex:
     def load_index(self, context) -> VectorStoreIndex:
         """Load the index from disk."""
         index = load_index_from_storage(
-            StorageContext.from_defaults(persist_dir=self.cache_dir),
+            self.storage_context,
             service_context=context
         )
         return index
@@ -179,5 +188,3 @@ if __name__ == "__main__":
     index = AutoMergingSRDIndex(llm)
     
     print(index.query("What is the attack bonus for a longsword?"))
-    
-    

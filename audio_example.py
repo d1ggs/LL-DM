@@ -1,5 +1,5 @@
-from transformers import AutoProcessor, SeamlessM4Tv2Model
 import torchaudio
+from transformers import AutoProcessor, SeamlessM4Tv2Model
 
 processor = AutoProcessor.from_pretrained("facebook/seamless-m4t-v2-large", device_map="cuda")
 model = SeamlessM4Tv2Model.from_pretrained("facebook/seamless-m4t-v2-large", device_map="cuda")
