@@ -1,13 +1,10 @@
 import fnmatch
-import io
 import os
 import shutil
-import tempfile
 import zipfile
 from dataclasses import dataclass
 from typing import List, Optional
 
-import wget
 from llama_index import (Document, ServiceContext, SimpleDirectoryReader,
                          StorageContext, VectorStoreIndex,
                          load_index_from_storage)
