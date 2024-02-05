@@ -5,7 +5,7 @@ from langchain.prompts import ChatMessagePromptTemplate, ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain_community.llms import LlamaCpp
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-
+from src.agent import GuidanceDMAgent
 # set_debug(True)
 
 # SYSTEM_PROMPT ="""You are a Dungeon Master for a D&D Forgotten Realms campaign set in Waterdeep. 
@@ -31,19 +31,23 @@ USER_PROMPT_TEMPLATE = """{question}"""
 
 @cl.cache
 def load_llm():
-    model = LlamaCpp(
-        model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
-        temperature=0.1,
-        max_tokens=512,
-        top_p=0.95,
-        # callback_manager=callback_manager,
-        verbose=True, # Verbose is required to pass to the callback manager
-        n_gpu_layers=-1,
-        echo=True,
-        n_ctx=1024*32,
-        stop=["### System", "### User", "### Assistant", "User:", "Player:", "DM:"],
-    )
-    return model
+    
+    llm = GuidanceDMAgent("/mnt/d/wsl/llamacpp/models")
+    # model = LlamaCpp(
+    #     model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
+    #     temperature=0.1,
+    #     max_tokens=512,
+    #     top_p=0.95,
+    #     # callback_manager=callback_manager,
+    #     verbose=True, # Verbose is required to pass to the callback manager
+    #     n_gpu_layers=-1,
+    #     echo=True,
+    #     n_ctx=1024*32,
+    #     stop=["### System", "### User", "### Assistant", "User:", "Player:", "DM:"],
+    # )
+    # return model
+    
+    return llm
 
 # from transformers import AutoProcessor, SeamlessM4Tv2Model
 # import torchaudio
@@ -59,60 +63,35 @@ async def on_chat_start():
     # translation_model, translation_processor = load_translation_model()
     # cl.user_session.set("translation_model", translation_model)
     # cl.user_session.set("translation_processor", translation_processor)
-    
-    model = load_llm()
 
-    prompt = ChatPromptTemplate.from_messages([
-        ChatMessagePromptTemplate.from_template(SYSTEM_PROMPT, role="### System"),
-        MessagesPlaceholder("chat_history"),
-        ChatMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE, role="### User"),
-        ChatMessagePromptTemplate.from_template("", role="### Assistant")]
-    )
-    
-    
-    memory = ConversationBufferWindowMemory(
-        k=2, 
-        return_messages=True,
-        memory_key="chat_history",
-    )
-    
-    # loaded_memory = RunnablePassthrough.assign(
-    #     chat_history=RunnableLambda(memory.load_memory_variables)
-    #     | itemgetter("history"),
+    # prompt = ChatPromptTemplate.from_messages([
+    #     ChatMessagePromptTemplate.from_template(SYSTEM_PROMPT, role="### System"),
+    #     MessagesPlaceholder("chat_history"),
+    #     ChatMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE, role="### User"),
+    #     ChatMessagePromptTemplate.from_template("", role="### Assistant")]
     # )
-
-    # logger.debug(f"memory:load_memory_variables: {memory.chat_memory}")
-
-    # standalone_question = {
-    #     "standalone_question": {
-    #         "input": lambda x: x["input"],
-    #         "history": lambda x: x["chat_history"],
-    #     } | prompt
-    # }
     
-    chain = LLMChain(llm=model, prompt=prompt, output_parser=StrOutputParser(), memory=memory)
-
-    cl.user_session.set("chain", chain)
+    agent = load_llm()
+    memory = []
     
-    # final_chain = loaded_memory | prompt | model | StrOutputParser()
-    # cl.user_session.set("runnable", final_chain)
-    # cl.user_session.set("chat_history", memory)
-    
-    # Create a temporary directory for the audio files
-    # cl.user_session.set("temp_dir", tempfile.mkdtemp())
+    cl.user_session.set("agent", agent)
+    cl.user_session.set("memory", memory)
 
 
 @cl.on_message
 async def on_message(message: cl.Message):
     
-    chain = cl.user_session.get("chain")  # type: LLMChain
+    agent: GuidanceDMAgent = cl.user_session.get("agent")
+    history: list = cl.user_session.get("memory")
 
-    res = await chain.arun(
-        question=message.content, callbacks=[cl.LangchainCallbackHandler()]
-    )
-
+    res = agent.generate_output_no_history(message.content)
+    
+    history.append({"role": "### User",
+                    "message": message})
+    history.append({"role": "### System",
+                    "message": res})
+    
     await cl.Message(content=res).send()
-
     
     # message_text = message.content
     # translation_model = cl.user_session.get("translation_model")

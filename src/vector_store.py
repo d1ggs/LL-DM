@@ -3,7 +3,7 @@ import os
 import shutil
 import zipfile
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from llama_index import (Document, ServiceContext, SimpleDirectoryReader,
                          StorageContext, VectorStoreIndex,
@@ -13,7 +13,7 @@ from llama_index.node_parser import HierarchicalNodeParser, get_leaf_nodes
 from llama_index.query_engine import RetrieverQueryEngine
 from llama_index.retrievers import AutoMergingRetriever
 from loguru import logger
-
+from llama_index.llms import LlamaCPP
 
 def find_files_with_extension(root_dir, extension):
     
@@ -31,7 +31,7 @@ class SRDConfig:
 class AutoMergingSRDIndex:
     srd_folder_name = "srd"
     
-    def __init__(self, llm, config: SRDConfig) -> None:
+    def __init__(self, llm: LlamaCPP, config: SRDConfig) -> None:
         self.cache_dir = config.index_cache_path
         self.llm = llm
         self.query_engine = None

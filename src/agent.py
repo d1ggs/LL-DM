@@ -1,22 +1,54 @@
 from typing import Optional
+import os
 
 from guidance import gen, models, select
 from llama_index.llms import OpenAILike
 
 from src.vector_store import AutoMergingSRDIndex, SRDConfig
+from loguru import logger
+from enum import Enum
+from guidance.models import LlamaCppChat
+from llama_cpp import Llama
+from llama_index.llms import LlamaCPP
+
+
+class Model(Enum):
+    LLAMA_CPP = 0
+    OPENAI_API = 1
 
 
 class GuidanceDMAgent:
-    def __init__(self, srd_config: Optional[SRDConfig] = None):
+    """DM Agent based on Guidance library"""
+    
+    def __init__(self, model_path: str, srd_config: Optional[SRDConfig] = None):
+        self.model_path = model_path
+        logger.debug("Loading SRD index")
+        self.llama_index_model = self.load_llama_model()
         self.srd = self.load_srd_index(srd_config if srd_config is not None else SRDConfig())
-        self.lm = models.LlamaCppChat(model="/mnt/d/WSL/llamacpp/models/neural-chat-7b-v3-1.Q5_K_M.gguf",
-                                      n_gpu_layers=-1,
-                                      n_ctx=1024*32)
+        self.lm = LlamaCppChat(self.llama_index_model._model)
+
+    def load_openai_compatible_api(self):
+        raise NotImplementedError
+        
+    def load_llama_model(self):
+        logger.debug("Loading LLaMa Model")
+        model = LlamaCPP(
+            model_path=os.path.join(self.model_path, "neural-chat-7b-v3-3.Q5_K_M.gguf"),
+            temperature=0.1,
+            max_new_tokens=512,
+            # callback_manager=callback_manager,
+            # verbose=True, # Verbose is required to pass to the callback manager
+            # echo=True,
+            context_window=1024*32,
+            model_kwargs={"n_gpu_layers": -1}
+        )
+        logger.debug("Model ready")
+        return model
         
     def load_srd_index(self, srd_config: SRDConfig):
         """Loads the Standard Reference Document (SRD) index"""
-        fake_openai = OpenAILike(api_base="http://localhost:5000/v1", api_key="...")
-        index = AutoMergingSRDIndex(fake_openai, srd_config)
+        # fake_openai = OpenAILike(api_base="http://localhost:5000/v1", api_key="...")
+        index = AutoMergingSRDIndex(self.llama_index_model, srd_config)
         return index
     
     def decide_rules_tool(self, llm, message):
@@ -39,7 +71,7 @@ class GuidanceDMAgent:
                     
             answer = tool_decision_output +  f"### Assistant: I will use the 'rules-database' tool to answer your question. The tool's answer is {tool_answer}. \n\nMy final answer is then: {gen(stop='### User:', name='answer')}"
         else:
-            answer = tool_decision_output + f'### Assistant: {gen(stop="### User:", name="answer")}'
+            answer = tool_decision_output + f'### Assistant: I do not need to use a tool to answer your question. {gen(stop="### User:", name="answer")}'
             
         return answer["answer"]
     
