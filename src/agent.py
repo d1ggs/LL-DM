@@ -3,7 +3,8 @@ import os
 
 from guidance import gen, models, select
 from llama_index.llms import OpenAILike
-from src.chat.history import ChatRole, HistoryMessage, RoleTokens
+from src.chat.history import ChatRole, HistoryMessage
+from src.chat.roles import RoleTokens
 
 from src.vector_store import AutoMergingSRDIndex, SRDConfig
 from loguru import logger
