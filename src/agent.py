@@ -3,6 +3,7 @@ import os
 
 from guidance import gen, models, select
 from llama_index.llms import OpenAILike
+from src.chat.history import ChatRole, HistoryMessage, RoleTokens
 
 from src.vector_store import AutoMergingSRDIndex, SRDConfig
 from loguru import logger
@@ -11,10 +12,16 @@ from guidance.models import LlamaCppChat
 from llama_cpp import Llama
 from llama_index.llms import LlamaCPP
 
-
 class Model(Enum):
     LLAMA_CPP = 0
     OPENAI_API = 1
+
+class ModelsRoleTokens:
+    intel_neural_chat = RoleTokens(
+        system="### System",
+        human="### User",
+        assistant="### Assistant"
+    )
 
 
 class GuidanceDMAgent:
@@ -79,3 +86,20 @@ class GuidanceDMAgent:
         """Generate the output for the user message with no history"""
         tool_decision_output = self.decide_rules_tool(self.lm, message)
         return self.generate_tool_output(tool_decision_output)
+    
+    def generate_chat_history_string(self, history: list[HistoryMessage]) -> str:
+        """Combine the chat history into a single string 
+        with the LLM role tokens applied."""
+        
+        history = ""
+        # Add the history messages to the history string
+        for m in history:
+            if m.role == ChatRole.HUMAN:
+                role_prefix = ModelsRoleTokens.intel_neural_chat.human
+            elif m.role == ChatRole.ASSISTANT:
+                role_prefix = ModelsRoleTokens.intel_neural_chat.assistant
+            else:
+                raise ValueError(f"Invalid role: {m.role}")
+            
+            history += role_prefix + ": " + m.content + "\n"
+        
