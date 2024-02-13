@@ -26,13 +26,13 @@ dependencies = [
     "unstructured>=0.12.0",
     "cohere>=4.42",
     "langchain-openai>=0.0.2.post1",
-    # "llama-cpp-python @ file:///${PROJECT_ROOT}/llama-cpp-python/dist/llama_cpp_python-0.2.31-cp310-cp310-manylinux_2_35_x86_64.whl",
+    "llama-cpp-python<0.2.40",
     "faiss-cpu>=1.7.4",
     "langchainhub>=0.1.14",
-    "llama-index==0.9.8",
+    "llama-index>=0.9.8,<0.11.0",
     "trulens>=0.13.4",
     "trulens-eval>=0.18.3",
-    "llama-cpp-python @ https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/wheels/llama_cpp_python-0.2.26+cu121-cp310-cp310-manylinux_2_31_x86_64.whl",
+    # "llama-cpp-python @ https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/wheels/llama_cpp_python-0.2.32+cu121-cp310-cp310-manylinux_2_31_x86_64.whl",
     "openai>=1.10.0",
     "huggingface-hub>=0.20.3",
     "tiktoken>=0.5.2",
@@ -42,6 +42,7 @@ dependencies = [
     "langgraph>=0.0.21",
     "guidance>=0.1.10",
     "wget>=3.2",
+    "llama-index-llms-llama-cpp>=0.1.1",
 ]
 requires-python = ">=3.10,<3.11"
 readme = "README.md"
