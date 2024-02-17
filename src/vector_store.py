@@ -78,9 +78,12 @@ class AutoMergingSRDIndex:
             self.load_index()
 
         logger.debug("Index ready")
+        
+        logger.debug("Building query engine")
         # The query engine is used to search the index
         self.query_engine = self.get_automerging_query_engine(self.index)
-
+        logger.debug("Query engine ready")
+        
     def _compute_srd_dir_path(self, project_root):
         return os.path.join(project_root, self.srd_folder_name)
 
