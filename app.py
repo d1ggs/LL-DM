@@ -1,4 +1,7 @@
+import os
+
 import chainlit as cl
+
 # from langchain.chains import LLMChain
 # from langchain.memory import ConversationBufferWindowMemory
 # from langchain.prompts import ChatMessagePromptTemplate, ChatPromptTemplate
@@ -6,6 +9,7 @@ import chainlit as cl
 # from langchain_community.llms import LlamaCpp
 # from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from src.agent import GuidanceDMAgent
+
 # set_debug(True)
 
 # SYSTEM_PROMPT ="""You are a Dungeon Master for a D&D Forgotten Realms campaign set in Waterdeep. 
@@ -32,7 +36,12 @@ USER_PROMPT_TEMPLATE = """{question}"""
 @cl.cache
 def load_llm():
     
-    llm = GuidanceDMAgent("/mnt/d/wsl/llamacpp/models")
+    current_path = os.path.dirname(os.path.abspath(__file__))
+    
+    model_path = os.environ.get("LLM_MODEL_PATH", 
+                                os.path.join(current_path, "models"))
+    
+    llm = GuidanceDMAgent(model_path)
     # model = LlamaCpp(
     #     model_path="models/neural-chat-7b-v3-3.Q5_K_M.gguf",
     #     temperature=0.1,

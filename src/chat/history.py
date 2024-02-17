@@ -1,6 +1,8 @@
 """Chat history related components."""
 from dataclasses import dataclass
+
 from src.chat.roles import ChatRole
+
 
 @dataclass
 class HistoryMessage:

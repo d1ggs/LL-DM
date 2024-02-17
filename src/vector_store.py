@@ -5,18 +5,16 @@ import zipfile
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from llama_index.core import (Document, SimpleDirectoryReader,
-                         VectorStoreIndex,
-                         load_index_from_storage)
-from llama_index.core import StorageContext
+from llama_index.core import (Document, SimpleDirectoryReader, StorageContext,
+                              VectorStoreIndex, load_index_from_storage)
 from llama_index.core.node_parser import HierarchicalNodeParser, get_leaf_nodes
-from llama_index.core.storage.docstore import SimpleDocumentStore
-from llama_index.core import StorageContext
-from llama_index.core.retrievers import AutoMergingRetriever
-from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.postprocessor import SentenceTransformerRerank
-from loguru import logger
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import AutoMergingRetriever
+from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.llms.llama_cpp import LlamaCPP
+from loguru import logger
+
 
 def find_files_with_extension(root_dir, extension):
     

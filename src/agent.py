@@ -1,17 +1,18 @@
-from typing import Optional
 import os
+from enum import Enum
+from typing import Optional
 
 from guidance import gen, models, select
-# from llama_index.llms import OpenAILike
-from src.chat.history import ChatRole, HistoryMessage
-from src.chat.roles import RoleTokens
-
-from src.vector_store import AutoMergingSRDIndex, SRDConfig
-from loguru import logger
-from enum import Enum
 from guidance.models import LlamaCppChat
 # from llama_cpp import Llama
 from llama_index.llms.llama_cpp import LlamaCPP
+from loguru import logger
+
+# from llama_index.llms import OpenAILike
+from src.chat.history import ChatRole, HistoryMessage
+from src.chat.roles import RoleTokens
+from src.vector_store import AutoMergingSRDIndex, SRDConfig
+
 
 class Model(Enum):
     LLAMA_CPP = 0

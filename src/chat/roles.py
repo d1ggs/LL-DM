@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+
 class ChatRole(Enum):
     """Enumeration representing the roles in a chat."""
     SYSTEM = 0
