@@ -5,7 +5,7 @@
 groups = ["default", "notebook", "lint"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:20671192e4696a4581372c9d00cb2932fbce29a1f98493c29a6f044a504aeef1"
+content_hash = "sha256:71f9beeec7c3f4172eae391b31559bf8a01b82ddd832d2f11c0bbd2297c46f68"
 
 [[package]]
 name = "accelerate"
@@ -2108,8 +2108,9 @@ files = [
 
 [[package]]
 name = "llama-cpp-python"
-version = "0.2.39"
+version = "0.2.41"
 requires_python = ">=3.8"
+path = "./wheels/llama_cpp_python-0.2.41-cp310-cp310-manylinux_2_35_x86_64.whl"
 summary = "Python bindings for the llama.cpp library"
 groups = ["default"]
 dependencies = [
@@ -2119,7 +2120,7 @@ dependencies = [
     "typing-extensions>=4.5.0",
 ]
 files = [
-    {file = "llama_cpp_python-0.2.39.tar.gz", hash = "sha256:e4fed6d0e9b925810a6463d75ef339d73288db5fa004938e5b6ce4fb40977d4f"},
+    {file = "llama_cpp_python-0.2.41-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:da51c4d2e8a5b35c0d1cc21207a9346487a733e5609264bd360f898513c5ca9e"},
 ]
 
 [[package]]
