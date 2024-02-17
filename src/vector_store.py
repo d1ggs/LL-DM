@@ -5,15 +5,18 @@ import zipfile
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from llama_index import (Document, ServiceContext, SimpleDirectoryReader,
-                         StorageContext, VectorStoreIndex,
+from llama_index.core import (Document, SimpleDirectoryReader,
+                         VectorStoreIndex,
                          load_index_from_storage)
-from llama_index.indices.postprocessor import SentenceTransformerRerank
-from llama_index.node_parser import HierarchicalNodeParser, get_leaf_nodes
-from llama_index.query_engine import RetrieverQueryEngine
-from llama_index.retrievers import AutoMergingRetriever
+from llama_index.core import StorageContext
+from llama_index.core.node_parser import HierarchicalNodeParser, get_leaf_nodes
+from llama_index.core.storage.docstore import SimpleDocumentStore
+from llama_index.core import StorageContext
+from llama_index.core.retrievers import AutoMergingRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.postprocessor import SentenceTransformerRerank
 from loguru import logger
-from llama_index.llms import LlamaCPP
+from llama_index.llms.llama_cpp import LlamaCPP
 
 def find_files_with_extension(root_dir, extension):
     
@@ -30,55 +33,44 @@ class SRDConfig:
 
 class AutoMergingSRDIndex:
     srd_folder_name = "srd"
+    embedding_model = "local:BAAI/bge-small-en-v1.5"
     
     def __init__(self, llm: LlamaCPP, config: SRDConfig) -> None:
         self.cache_dir = config.index_cache_path
         self.llm = llm
         self.query_engine = None
         
-        srd_folder = config.srd_folder_path
+        if not os.path.exists(self.cache_dir):
+            logger.debug(f"Creating index from scratch in {self.cache_dir}")
+            
+            srd_folder = config.srd_folder_path
         
-        logger.debug(f"Loading SRD documents from {srd_folder}")
-        documents = self.load_srd_documents(srd_folder)
-        
-        # Extract the parser nodes and all the leaf nodes
-        node_parser = self.build_node_parser()
-        nodes = node_parser.get_nodes_from_documents(documents)
-        
-        logger.debug(f"Creating cache directory {self.cache_dir}")
-        os.makedirs(self.cache_dir, exist_ok=True)
-        
-        try:
-            logger.debug(f"Trying to load existing index from {self.cache_dir}")
-            self.storage_context = self.build_storage_context(documents, persist_dir=self.cache_dir)
-            self.index = self.load_index(self.storage_context)
-        except (ValueError, FileNotFoundError, AttributeError) as e:
-            logger.error(f"Error loading index: {e}")
-            self.storage_context = self.build_storage_context(nodes)
-            # If the cache directory does not exist, 
-            # create the index from scratch
-            # Convert the JSON files to LLaMaIndex documents
-            logger.debug(f"Building index from {srd_folder}")
-
+            logger.debug(f"Loading SRD documents from {srd_folder}")
+            documents = self.load_srd_documents(srd_folder)
+            
+            # Extract the parser nodes and all the leaf nodes
+            node_parser = HierarchicalNodeParser.from_defaults(chunk_sizes=[2048, 512, 128])
+            nodes = node_parser.get_nodes_from_documents(documents)
             leaf_nodes = get_leaf_nodes(nodes)
 
-            service_context = self.build_service_context()
-            
-            # Build the index
-            automerging_index = VectorStoreIndex(
-                leaf_nodes, 
-                storage_context=self.storage_context, 
-                service_context=service_context
+            docstore = SimpleDocumentStore()
+            # insert nodes into docstore
+            docstore.add_documents(nodes)
+            # define storage context (will include vector store by default too)
+            storage_context = StorageContext.from_defaults(docstore=docstore)
+            self.index = VectorStoreIndex(
+                leaf_nodes,
+                storage_context=storage_context,
+                embed_model=self.embedding_model,
+                show_progress=True
             )
-            self.index = automerging_index
-            
-            self.store_index(automerging_index)
-                
+            self.store_index()
         else:
-            logger.debug(f"Loading existing index from {self.cache_dir}")
+            logger.debug(f"Cache directory {self.cache_dir} already exists")
+            logger.debug(f"Trying to load existing index from {self.cache_dir}")
+            self.load_index()
+                
 
-            # If the cache directory exists, load the index from disk
-            self.index = self.load_index(self.storage_context)
         logger.debug("Index ready")
         # The query engine is used to search the index
         self.query_engine = self.get_automerging_query_engine(self.index)
@@ -105,21 +97,28 @@ class AutoMergingSRDIndex:
         
         return node_parser
     
-    def build_storage_context(self, documents, persist_dir: Optional[str] = None) -> StorageContext:
-        """Build the storage context for the index."""
-        kwargs = {"persist_dir": persist_dir} if persist_dir else {}
-        storage_context = StorageContext.from_defaults(**kwargs)
-        storage_context.docstore.add_documents(documents)
+    def build_storage_context(self, persist_dir: str) -> StorageContext:
+        """Build the storage context for the index.
+        
+        Parameters
+        ----------
+        
+        persist_dir: str
+            The directory where the index will be stored.
+            
+        Returns
+        -------
+        
+        storage_context: StorageContext
+            The storage context for the index.
+            
+        """
+        
+        storage_context = StorageContext.from_defaults(
+            persist_dir=persist_dir
+        )
         
         return storage_context
-                
-    def build_service_context(self, embed_model="local:BAAI/bge-small-en-v1.5") -> ServiceContext:
-        """Build the service context for the index."""
-        return ServiceContext.from_defaults(
-            llm=self.llm,
-            embed_model=embed_model,
-            node_parser=self.build_node_parser(),
-        )
         
     def download_srd(self, destination_path) -> str:
         """Download the SRD from the Dropbox link and unzip it."""
@@ -143,18 +142,23 @@ class AutoMergingSRDIndex:
         return self._compute_srd_dir_path(destination_path)
         
     
-    def load_index(self, context) -> VectorStoreIndex:
-        """Load the index from disk."""
-        index = load_index_from_storage(
-            self.storage_context,
-            service_context=context
-        )
-        return index
+    def load_index(self):
+        """Load the index from disk and set the self.index attribute."""
+
+        # rebuild storage context
+        storage_context = self.build_storage_context(persist_dir=self.cache_dir)
+
+        # load index
+        index = load_index_from_storage(storage_context, 
+                                        embed_model=self.embedding_model, 
+                                        show_progress=True)
+        
+        self.index = index
     
-    def store_index(self, index):
+    def store_index(self):
         """Store the index to disk."""
         os.makedirs(self.cache_dir, exist_ok=True)
-        index.storage_context.persist(persist_dir=self.cache_dir)
+        self.index.storage_context.persist(persist_dir=self.cache_dir)
     
     def get_automerging_query_engine(
         self,
@@ -162,7 +166,9 @@ class AutoMergingSRDIndex:
         similarity_top_k=12,
         rerank_top_n=6,
     ) -> RetrieverQueryEngine:
+        
         base_retriever = automerging_index.as_retriever(similarity_top_k=similarity_top_k)
+        
         retriever = AutoMergingRetriever(
             base_retriever, automerging_index.storage_context, verbose=True
         )
@@ -170,7 +176,7 @@ class AutoMergingSRDIndex:
             top_n=rerank_top_n, model="BAAI/bge-reranker-base"
         )
         auto_merging_engine = RetrieverQueryEngine.from_args(
-            retriever, node_postprocessors=[rerank]
+            retriever, node_postprocessors=[rerank], llm=self.llm
         )
         return auto_merging_engine
     

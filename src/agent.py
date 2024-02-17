@@ -2,7 +2,7 @@ from typing import Optional
 import os
 
 from guidance import gen, models, select
-from llama_index.llms import OpenAILike
+# from llama_index.llms import OpenAILike
 from src.chat.history import ChatRole, HistoryMessage
 from src.chat.roles import RoleTokens
 
@@ -10,8 +10,8 @@ from src.vector_store import AutoMergingSRDIndex, SRDConfig
 from loguru import logger
 from enum import Enum
 from guidance.models import LlamaCppChat
-from llama_cpp import Llama
-from llama_index.llms import LlamaCPP
+# from llama_cpp import Llama
+from llama_index.llms.llama_cpp import LlamaCPP
 
 class Model(Enum):
     LLAMA_CPP = 0
@@ -83,7 +83,7 @@ class GuidanceDMAgent:
             
         return answer["answer"]
     
-    def generate_output_no_history(self, message):
+    def generate_output_no_history(self, message) -> str:
         """Generate the output for the user message with no history"""
         tool_decision_output = self.decide_rules_tool(self.lm, message)
         return self.generate_tool_output(tool_decision_output)
