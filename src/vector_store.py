@@ -179,7 +179,11 @@ class AutoMergingSRDIndex:
             top_n=rerank_top_n, model="BAAI/bge-reranker-base"
         )
         auto_merging_engine = RetrieverQueryEngine.from_args(
-            retriever, node_postprocessors=[rerank], llm=self.llm
+            retriever, 
+            node_postprocessors=[rerank], 
+            llm=self.llm, 
+            response_mode="tree_summarize", 
+            similarity_top_k=20
         )
         return auto_merging_engine
 

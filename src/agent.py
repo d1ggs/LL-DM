@@ -1,8 +1,8 @@
 import os
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-from guidance import gen, models, select
+from guidance import gen, select
 from guidance.models import LlamaCppChat
 
 # from llama_cpp import Llama
@@ -37,6 +37,9 @@ class GuidanceDMAgent:
             srd_config if srd_config is not None else SRDConfig()
         )
         self.lm = LlamaCppChat(self.llama_index_model._model)
+        
+        self.history: List[HistoryMessage] = []  # Initialize the history list
+
 
     def load_openai_compatible_api(self):
         raise NotImplementedError
@@ -65,7 +68,7 @@ class GuidanceDMAgent:
     def decide_rules_tool(self, llm, message):
         """Decide whether to use a tool to answer the user message"""
         return llm + (
-            f"### System: You are a dungeon master for D&D 5e games. You have the following tools available: ('rules-database', Answers questions about the rules and details of the game). Do not rely on your own knowledge, use the tools to answer the question.\n"
+            f"### System: You are a dungeon master for D&D 5e games. You have the following tools available: ('rules-database', Answers questions about the rules and details of the game). Do not rely on your own knowledge, use the tools to answer the question, but do not use tools when not needed.\n"
             f"### User: {message}\n"
             f"### Assistant: I {select(['need', 'do not need'], name='choice')} to use a tool to answer your question."
         )
@@ -115,3 +118,28 @@ class GuidanceDMAgent:
                 raise ValueError(f"Invalid role: {m.role}")
 
             history += role_prefix + ": " + m.content + "\n"
+        
+        return history
+
+    def append_to_history(self, content: str, role: ChatRole):
+        """Append a new message to the history."""
+        self.history.append(HistoryMessage(content=content, role=role))
+    
+    def generate_output_with_history(self, message: str) -> str:
+        """Generate the output for the user message considering the history"""
+        # Append the user's message to the history
+        
+        logger.info(f"Received message: {message}")
+        self.append_to_history(content=message, role=ChatRole.HUMAN)
+        
+        # Use history to generate a response
+        history_str = self.generate_chat_history_string(self.history)
+        
+        print(f"History: {history_str}")
+        tool_decision_output = self.decide_rules_tool(self.lm, history_str)
+        
+        # Generate tool output and append it to the history
+        output = self.generate_tool_output(tool_decision_output)
+        self.append_to_history(content=output, role=ChatRole.ASSISTANT)
+        
+        return output
