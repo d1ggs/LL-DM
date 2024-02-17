@@ -5,25 +5,39 @@ This project aims at creating a tool to generate and host a campaign for the gam
 ## TODO
 * [x] Create a basic UI
 * [ ] Allow file upload
-* [ ] Set up document retrieval
+* [x] Set up document retrieval
 * [ ] Set up chat summarization
 * [ ] Set up audio generation (possible memory constraints)
 
 ## Installation
-The following instructions are for AMD cards. I will provide an NVIDIA version soon.
+The following instructions are for **NVIDIA** cards.
 
-0. This project uses PDM as a package manager
+We suggest using `conda` to simplify the dependency installation.
+
+0. Install conda/miniconda/micromamba
+
+1. Install the conda environment
 ```bash
-pip install pipx
-pipx install pdm
+conda env create -f environment.yml`
+conda activate ll-dm
 ```
 
-1. Install the dependencies
+2. Build the optimized version of `llama-cpp-python`
+```bash
+./build-llama-cpp.sh`
+```
+
+3. Install the pip dependencies with pdm
 ```bash
 pdm install
 ```
 
-3. Start the UI
+4. Download the LLM model
+```bash
+./download-model.sh
+```
+
+5. Start the UI
 ```bash
 pdm run chainlit run app.py
 ```
