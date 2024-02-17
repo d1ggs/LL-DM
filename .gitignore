@@ -130,7 +130,7 @@ llama-cpp-python
 .devcontainer/
 
 elements/*
-.chainlit/*
+**/.chainlit/*
 **/.streamlit/*
 *.sqlite
 merging_index/
@@ -141,3 +141,4 @@ notebooks/srd
 notebooks/srd.zip
 index/
 srd/
+pyproject.toml.bak
